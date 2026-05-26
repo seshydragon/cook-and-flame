@@ -20,7 +20,6 @@ export default function ProfileClient() {
   const [bio, setBio] = useState('')
 
   useEffect(() => {
-    if (searchParams.get('upgraded')) alert('🎉 Your plan has been upgraded.')
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/auth'); return }
       setUser(data.user)
@@ -30,7 +29,11 @@ export default function ProfileClient() {
 
   async function fetchProfile(userId: string) {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    if (p) { setProfile(p as Profile); setDisplayName(p.display_name || ''); setBio(p.bio || '') }
+    if (p) {
+      setProfile(p as Profile)
+      setDisplayName(p.display_name || '')
+      setBio(p.bio || '')
+    }
     const { data: saved } = await supabase.from('saved_recipes').select('recipes(*)').eq('user_id', userId)
     setSavedRecipes(saved?.map((s: any) => s.recipes).filter(Boolean) || [])
     const { data: mine } = await supabase.from('recipes').select('*').eq('user_id', userId).order('created_at', { ascending: false })
@@ -51,9 +54,19 @@ export default function ProfileClient() {
     router.push('/')
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 size={24} className="animate-spin text-orange-600" /></div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={24} className="animate-spin text-orange-600" />
+      </div>
+    )
+  }
 
-  const PLAN_COLORS: Record<string, string> = { free: 'bg-gray-100 text-gray-600', pro: 'bg-orange-50 text-orange-700', family: 'bg-purple-50 text-purple-700' }
+  const PLAN_COLORS: Record<string, string> = {
+    free: 'bg-gray-100 text-gray-600',
+    pro: 'bg-orange-50 text-orange-700',
+    family: 'bg-purple-50 text-purple-700'
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -65,7 +78,9 @@ export default function ProfileClient() {
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-gray-900">{profile?.display_name || 'Home Cook'}</h1>
-              <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${PLAN_COLORS[profile?.plan || 'free']}`}>{profile?.plan || 'free'}</span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${PLAN_COLORS[profile?.plan || 'free']}`}>
+                {profile?.plan || 'free'}
+              </span>
               {profile?.plan !== 'free' && <BadgeCheck size={16} className="text-orange-600" />}
             </div>
             <p className="text-sm text-gray-400 mt-0.5">{user?.email}</p>
@@ -78,67 +93,4 @@ export default function ProfileClient() {
                 </div>
               ))}
             </div>
-          </div>
-          <button onClick={signOut} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 border border-gray-200 px-3 py-1.5 rounded-lg">
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
-      </div>
-
-      <div className="flex gap-1 border-b border-gray-200 mb-5">
-        {(['saved', 'my', 'settings'] as const).map(id => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${tab === id ? 'border-orange-500 text-orange-700 font-medium' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>
-            {id === 'my' ? 'My Recipes' : id.charAt(0).toUpperCase() + id.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'saved' && (savedRecipes.length === 0 ? (
-        <div className="text-center py-12 text-gray-400"><div className="text-4xl mb-3">🔖</div><p>No saved recipes. <Link href="/" className="text-orange-600 underline">Browse</Link></p></div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {savedRecipes.map(r => (
-            <Link key={r.id} href={`/recipes/${r.id}`} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:-translate-y-0.5 transition-transform">
-              <div className="h-20 bg-orange-50 flex items-center justify-center text-4xl">{r.emoji}</div>
-              <div className="p-2.5 text-sm font-medium text-gray-800 truncate">{r.title}</div>
-            </Link>
-          ))}
-        </div>
-      ))}
-
-      {tab === 'my' && (myRecipes.length === 0 ? (
-        <div className="text-center py-12 text-gray-400"><div className="text-4xl mb-3">🍳</div><p>No recipes yet. <Link href="/add" className="text-orange-600 underline">Add one!</Link></p></div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {myRecipes.map(r => (
-            <Link key={r.id} href={`/recipes/${r.id}`} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:-translate-y-0.5 transition-transform">
-              <div className="h-20 bg-orange-50 flex items-center justify-center text-4xl">{r.emoji}</div>
-              <div className="p-2.5 text-sm font-medium text-gray-800 truncate">{r.title}</div>
-            </Link>
-          ))}
-        </div>
-      ))}
-
-      {tab === 'settings' && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 max-w-md space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Display name</label>
-            <input className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-400" value={displayName} onChange={e => setDisplayName(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Bio</label>
-            <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-400 min-h-20 resize-y" value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell the community about yourself…" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Email</label>
-            <input className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none text-gray-400 bg-gray-50" value={user?.email} disabled />
-          </div>
-          <button onClick={saveProfile} disabled={saving} className="flex items-center gap-2 bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 disabled:opacity-50 transition-colors">
-            {saving && <Loader2 size={14} className="animate-spin" />} Save changes
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
+          </div
