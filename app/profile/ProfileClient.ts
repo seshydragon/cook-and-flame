@@ -54,7 +54,7 @@ export default function ProfileClient() {
     router.push('/')
   }
 
-  if (loading) {
+ if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 size={24} className="animate-spin text-orange-600" />
